@@ -459,21 +459,25 @@ body.dark .flow-cap { color: #bcd2ff; }
 .sheet-letterhead {
   position: relative;
   display: block;
-  min-height: 52px;
+  /* min-height >= logo bottom edge (top + height) + safety margin
+     سابقاً 52px = نفس bottom-edge للشعار → تداخل مع .tbl--head الذي يليها */
+  min-height: 60px;
   text-align: center;
   padding: 2px 54px 6px;
   margin-block-end: 6px;
   border-block-end: 1.5px solid var(--brand-navy);
+  overflow: visible;
 }
 .sheet-logo {
   position: absolute;
   inset-inline-end: 0;       /* في RTL: end = اليسار البصري — مطابق لـDOCX الأصلي */
   inset-inline-start: auto;
-  inset-block-start: 2px;
-  width: 50px;
-  height: 50px;
+  inset-block-start: 4px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   background: transparent;
+  z-index: 1;
 }
 .sheet-letterhead__text {
   display: inline-flex;
@@ -481,7 +485,7 @@ body.dark .flow-cap { color: #bcd2ff; }
   justify-content: center;
   align-items: center;
   gap: 2px;
-  min-height: 50px;
+  min-height: 48px;
   max-width: 100%;
   text-align: center;
 }
