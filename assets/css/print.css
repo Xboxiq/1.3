@@ -91,7 +91,9 @@
     min-height: 0 !important;
     height: auto !important;
     margin: 0 !important;
-    padding: 10mm 12mm 12mm !important;
+    /* DENSITY: 8mm hot-margins → استرجاع ~17mm إضافية رأسياً لكل صفحة،
+       يكفي لاحتواء أغلب النماذج في صفحة واحدة كنسخة Word الأصلية. */
+    padding: 8mm 9mm 9mm !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -99,13 +101,16 @@
     color: #000 !important;
     direction: rtl !important;
     font-family: var(--print-font) !important;
-    font-size: 11.5px !important;
-    line-height: 1.5 !important;
+    /* 10pt = القياس الرسمي للنماذج الحكومية العراقية (مطابق للملف الأصلي).
+       line-height: 1.35 (بدلاً من 1.5) يطابق تباعد Word الافتراضي للعربي. */
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
     box-sizing: border-box !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    break-after: avoid !important;
-    page-break-after: avoid !important;
+    /* لا نمنع تقسيم الصفحة على #printSheet — نتركه يتدفّق طبيعياً.
+       break-inside: avoid على الورقة بأكملها سابقاً كان يحاول حشر كل شيء
+       في صفحة واحدة فيتسبّب بانكماش الـviewport وفقدان التوازن. */
+    break-inside: auto !important;
+    page-break-inside: auto !important;
   }
 
   /* تطهير كامل لأي effect بصري داخل النسخة المستنسخة (بلا content: none
@@ -332,12 +337,17 @@
     position: relative !important;
     display: block !important;
     text-align: center !important;
-    min-height: 18mm !important;
-    /* padding: top right bottom left → 22mm يسار محجوزة للشعار، 5mm يمين هامش بسيط */
-    padding: 1mm 5mm 2mm 22mm !important;
-    margin-block-end: 3mm !important;
-    border-block-end: 1.2pt solid #000 !important;
+    /* SAFE-HEIGHT: الشعار = top:1mm + height:16mm = 17mm من أعلى الحاوية.
+       مع box-sizing: border-box، min-height: 20mm يضمن أن الشعار لا يفيض
+       خارج الترويسة فيتداخل مع الجدول التالي (tbl--head). */
+    min-height: 20mm !important;
+    /* padding: top right bottom left → 20mm يسار محجوزة للشعار + 1mm فاصل */
+    padding: 1mm 4mm 2mm 20mm !important;
+    margin-block-end: 2.5mm !important;
+    border-block-end: 1pt solid #000 !important;
     box-sizing: border-box !important;
+    /* مهم: يمنع الترويسة من الانكماش بحيث يبقى الشعار محصوراً داخلها */
+    overflow: visible !important;
   }
   .sheet-logo {
     position: absolute !important;
@@ -347,13 +357,17 @@
     inset-block-start: auto !important;
     inset-inline-start: auto !important;
     inset-inline-end: auto !important;
-    width: 18mm !important;
-    height: 18mm !important;
+    /* تقليص بسيط من 18mm → 16mm: يضمن أن (top:1mm + height:16mm = 17mm) داخل
+       حدود الترويسة (20mm) مع هامش أمان 3mm تحت الشعار → لا تداخل بصري. */
+    width: 16mm !important;
+    height: 16mm !important;
     object-fit: contain !important;
     background: transparent !important;
     box-shadow: none !important;
     border: 0 !important;
     padding: 0 !important;
+    margin: 0 !important;
+    z-index: 1 !important;
   }
   .sheet-letterhead__text {
     display: flex !important;
@@ -634,16 +648,19 @@
   /* جدول التواقيع: مفضّل عدم القطع لكن السماح بذلك إذا لزم لإحكام التركيب */
   .tbl--sign { break-inside: auto; page-break-inside: auto; }
 
-  /* ====== فصل صفحة الإقرار والتعهّد ======
-     قسم "إقرار وتعهّد والتزام" يجب أن يبدأ صفحة مستقلة (مطابقة للنموذج الورقي
-     الرسمي: الصفحة الأولى = البيانات + التوقيع، الصفحة الثانية = التعهّد).
-     هذا يمنع انضغاط بداية التعهّد في ذيل الصفحة الأولى. */
+  /* ====== فاصل صفحة الإقرار والتعهّد ======
+     سابقاً كان مفروضاً (break-before: page) → ينتج 2-3 صفحات لكل نموذج بغض
+     النظر عن طوله، خلافاً للنموذج الورقي الأصلي الذي يحدّد التقسيم بحسب
+     الكثافة الفعلية للمحتوى. الآن: السماح بالتدفّق الطبيعي، مع منع تقسيم
+     كتلة التعهّد بين صفحتين (avoid) — يبقى متماسكاً ويُرحَّل كاملاً للصفحة
+     التالية فقط إذا لم يتسع له ذيل الصفحة الحالية. */
   .block--legal {
-    break-before: page !important;
-    page-break-before: always !important;
-    /* هامش علوي مريح بعد فاصل الصفحة لإبراز عنوان التعهّد */
-    margin-block-start: 6mm !important;
-    padding-block-start: 4mm !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    margin-block-start: 3mm !important;
+    padding-block-start: 2mm !important;
   }
   /* عنوان التعهّد يبقى ملتصقاً بنصّه (لا يُترك يتيماً في أعلى الصفحة) */
   .block--legal .block-title--legal,
