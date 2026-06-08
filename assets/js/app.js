@@ -1137,9 +1137,12 @@ function renderPreview(code, svc) {
       ]),
       el('div', { class: 'preview-actions' }, [
         btn('تحديث المعاينة', 'save', () => refreshPreview(code, svc, true)),
-        btn('طباعة النموذج', 'wordprint', (e) => printWordCopy(code, svc, e), 'primary'),
+        // المسار الأساسي: استنساخ #formSheet إلى body وفق print.css — يحترم موضع
+        // الشعار (top-left) ولا يعتمد على iframe الـdocx-preview الذي يضع الشعار
+        // في النص حين لا يحترم تموضع الصور المطلق داخل ترويسة الـDOCX.
+        btn('طباعة النموذج', 'print', () => printFormSheet(), 'primary'),
         btn('تنزيل Word', 'word', (e) => downloadWord(code, svc, e)),
-        btn('تصدير PDF', 'pdf', (e) => { toast('في نافذة الطباعة اختر «حفظ كـ PDF»', 'info'); setTimeout(() => printWordCopy(code, svc, e), 500); }),
+        btn('تصدير PDF', 'pdf', () => { toast('في نافذة الطباعة اختر «حفظ كـ PDF»', 'info'); setTimeout(() => printFormSheet(), 500); }),
       ]),
     ]),
   ]);
@@ -2199,16 +2202,18 @@ function toolbar(code, svc) {
   const primaryCluster = el('div', { class: 'action-cluster action-cluster--primary' });
   const secondaryCluster = el('div', { class: 'action-cluster action-cluster--secondary' });
 
+  // المسار الأساسي للطباعة: دائماً عبر printFormSheet — استنساخ #formSheet
+  // إلى body مع print.css. يحترم تموضع الشعار (top-left فيزيائي) ولا يعتمد على
+  // iframe الـdocx-preview (الذي كان يضع الشعار في وسط الترويسة لأنه لا يحترم
+  // تموضع الصور المطلق في الـDOCX). تنزيل Word يبقى للاستخدام في برنامج Word.
+  primaryCluster.appendChild(btn('طباعة النموذج', 'print', () => printFormSheet(), 'primary', 'positive'));
   if (hasWord) {
-    primaryCluster.appendChild(btn('طباعة النموذج', 'wordprint', (e) => printWordCopy(code, svc, e), 'primary', 'positive'));
     secondaryCluster.appendChild(btn('تنزيل Word', 'word', (e) => downloadWord(code, svc, e), null, 'positive'));
-  } else {
-    primaryCluster.appendChild(btn('طباعة النموذج', 'print', () => printFormSheet(), 'primary', 'positive'));
   }
 
   const more = [];
-  if (hasWord) more.push({ text: 'طباعة تخطيطية (شاشة)', icon: 'print', onclick: () => printFormSheet(), sentiment: 'positive' });
-  more.push({ text: 'تصدير PDF', icon: 'pdf', onclick: () => { toast('في نافذة الطباعة اختر «حفظ كـ PDF»', 'info'); setTimeout(() => (hasWord ? printWordCopy(code, svc) : printFormSheet()), 500); }, sentiment: 'positive' });
+  if (hasWord) more.push({ text: 'طباعة نسخة Word (iframe — تجريبي)', icon: 'wordprint', onclick: (e) => printWordCopy(code, svc, e), sentiment: 'positive' });
+  more.push({ text: 'تصدير PDF', icon: 'pdf', onclick: () => { toast('في نافذة الطباعة اختر «حفظ كـ PDF»', 'info'); setTimeout(() => printFormSheet(), 500); }, sentiment: 'positive' });
   more.push('sep');
   more.push({ text: 'حفظ المسودة', icon: 'save', onclick: () => { saveDrafts(); toast('تم حفظ المسودة', 'success'); }, sentiment: 'positive' });
   more.push({ text: 'تصدير بيانات (JSON)', icon: 'export', onclick: () => exportJSON(code, svc), sentiment: 'positive' });
