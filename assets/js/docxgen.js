@@ -190,11 +190,27 @@
 
   function docxStabilityCss(pageRule) {
     return (pageRule || '') +
-      'html, body { margin: 0; padding: 0; background: #fff; direction: rtl; }' +
+      // CHROMIUM RTL PRINT FIX:
+      // html/body في وضع LTR كي يحسب محرّك الطباعة إحداثيات الصفحة من 0 يساراً.
+      // هذا يمنع الإزاحة السالبة التي يولّدها direction:rtl حين يتجاوز المحتوى
+      // الحاوية → قصّ من اليسار. ثم نُعيد فرض RTL على شجرة المستند نفسها
+      // (docx-preview يضع direction على كل فقرة بناءً على bidi info داخل الملف،
+      //  فلا تتأثّر اتجاهات النصوص العربية).
+      'html, body { margin: 0; padding: 0; background: #fff; direction: ltr; }' +
       'body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }' +
       '* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }' +
-      '.docx-wrapper { background: #fff !important; padding: 0 !important; display: block !important; }' +
-      '.docx-wrapper > section.docx { box-shadow: none !important; margin: 0 auto !important; overflow: hidden !important; }' +
+      // الحاوية تأخذ اتجاه RTL — هي المسؤولة عن تخطيط المحتوى العربي
+      '.docx-wrapper { background: #fff !important; padding: 0 !important; margin: 0 !important; display: block !important; direction: rtl !important; overflow: visible !important; box-shadow: none !important; }' +
+      // section.docx: overflow:visible (لا hidden) لمنع قصّ الفائض الجانبي،
+      // مع width:auto كي لا يفرض docx-preview عرضاً أكبر من ورقة A4 الفعليّة
+      '.docx-wrapper > section.docx {' +
+      '  box-shadow: none !important;' +
+      '  margin: 0 auto !important;' +
+      '  overflow: visible !important;' +
+      '  direction: rtl !important;' +
+      '  max-width: 100% !important;' +
+      '  min-width: 0 !important;' +
+      '}' +
       // مُحدِّد أعلى من ".docx" لتجاوز خطوط القالب الافتراضية (Aptos غير المثبّت + العربي الفارغ)
       '.docx-wrapper section.docx {' +
       '  --docx-minorHAnsi-font: ' + FONT_STACK + ';' +
@@ -202,8 +218,27 @@
       '  --docx-minorBidi-font: ' + FONT_STACK + ';' +
       '  --docx-majorBidi-font: ' + FONT_STACK + ';' +
       '}' +
-      '.docx-wrapper section.docx table { border-collapse: collapse; }' +
-      '.docx-wrapper section.docx input, .docx-wrapper section.docx textarea { font: inherit; }';
+      '.docx-wrapper section.docx table {' +
+      '  border-collapse: collapse;' +
+      // منع الجداول من فرض عرض ثابت يخرج عن حدود الصفحة → السبب الأكثر شيوعاً
+      // لقصّ النصوص من اليسار في RTL (الجدول يفيض من الحافة المنطقية start).
+      '  max-width: 100% !important;' +
+      '  table-layout: fixed !important;' +
+      '  word-wrap: break-word !important;' +
+      '  overflow-wrap: anywhere !important;' +
+      '}' +
+      '.docx-wrapper section.docx td, .docx-wrapper section.docx th {' +
+      '  word-wrap: break-word !important;' +
+      '  overflow-wrap: anywhere !important;' +
+      '}' +
+      '.docx-wrapper section.docx input, .docx-wrapper section.docx textarea { font: inherit; }' +
+      // قطع آمن للصفحات: لا تُقسّم الصفوف/الصور بين الصفحات
+      '@media print {' +
+      '  html, body { width: auto !important; }' +
+      '  tr, td, th, img { break-inside: avoid !important; page-break-inside: avoid !important; }' +
+      '  thead { display: table-header-group !important; }' +
+      '  tfoot { display: table-footer-group !important; }' +
+      '}';
   }
 
   function appendStyle(doc, cssText) {
@@ -242,7 +277,10 @@
 
     const idoc = iframe.contentDocument || iframe.contentWindow.document;
     idoc.open();
-    idoc.write('<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>' +
+    // dir="ltr" على <html> لمنع قصّ المحتوى يساراً في طباعة Chromium (الحلّ نفسه
+    // مطبَّق على مستوى CSS داخل docxStabilityCss). الاتجاه RTL يُعاد فرضه على
+    // ‎.docx-wrapper وما تحتها — حيث ينتمي المحتوى العربي.
+    idoc.write('<!DOCTYPE html><html dir="ltr" lang="ar"><head><meta charset="utf-8"><title>' +
       escapeHtml(title) + '</title></head><body></body></html>');
     idoc.close();
 
