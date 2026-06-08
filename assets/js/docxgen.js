@@ -152,10 +152,14 @@
 
     // نرسم في حاوية مؤقتة ثم نبدّلها دفعة واحدة (يمنع وميض الإفراغ أثناء التحديث الحيّ)
     const staging = document.createElement('div');
+    // ignoreWidth + hideWrapperOnPrint: يعالج قصّ النصوص من اليسار في طباعة RTL
+    // (Chromium ينتج إحداثيات سالبة حين تتخطّى الحاوية ذات direction:rtl حدودها).
+    // النتيجة: العرض يتجاوب مع حدود A4 ويتفكّك غلاف المستند عند الطباعة فقط.
     await window.docx.renderAsync(ab, staging, null, {
       className: 'docx',
       inWrapper: true,
-      ignoreWidth: false,
+      hideWrapperOnPrint: true,
+      ignoreWidth: true,
       ignoreHeight: false,
       breakPages: true,
       experimental: true,
@@ -163,6 +167,7 @@
       renderFooters: true,
       renderFootnotes: true,
       useBase64URL: true,
+      debug: false,
     });
 
     container.innerHTML = '';
@@ -247,14 +252,16 @@
     await window.docx.renderAsync(ab, idoc.body, idoc.head, {
       className: 'docx',
       inWrapper: true,
-      ignoreWidth: false,
+      hideWrapperOnPrint: true, // يفكّك غلاف المستند عند الطباعة (يمنع ظلال/تمرير الحاوية)
+      ignoreWidth: false,       // نُبقيها false هنا: حجم الصفحة في @page يُشتقّ من عرض المقطع الطبيعي
       ignoreHeight: false,
       breakPages: true,
-      experimental: true,      // يفعّل رسم علامات الجدولة (tab stops) بدقّة → يضبط التباعد/الترتيب
+      experimental: true,       // يفعّل رسم علامات الجدولة (tab stops) بدقّة → يضبط التباعد/الترتيب
       renderHeaders: true,
       renderFooters: true,
       renderFootnotes: true,
       useBase64URL: true,
+      debug: false,
     });
 
     // حجم الصفحة من المستند نفسه (لا نفرض A4) — يمنع التصغير وتشوّه التنسيق
