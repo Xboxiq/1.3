@@ -220,10 +220,40 @@
     box-shadow: none !important;
     min-height: 0 !important;
   }
-  .preview-surface .docx-wrapper { zoom: 1 !important; }
+  .preview-surface .docx-wrapper {
+    zoom: 1 !important;
+    /* تحييد الظلال/الهوامش والـoverflow:auto الافتراضي لمكتبة docx-preview
+       الذي يُسبّب إحداثيات سالبة في طباعة RTL → قصّ من اليسار في Chromium. */
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
   .preview-surface .docx-wrapper > section.docx {
     box-shadow: none !important;
     border-radius: 0 !important;
+    /* مع ignoreWidth: نسمح للمقطع بالتجاوب داخل عرض A4 بدل عرض ثابت يخرج عن الورقة */
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    /* منع توليد إحداثيات سالبة على المحور الأفقي عند تجاوز محتوى RTL */
+    transform: none !important;
+    filter: none !important;
+  }
+  /* فحص أمان: أي عنصر داخل المعاينة يجب ألّا يحمل أبعاد شاشة (vw/vh) أو ظلالاً
+     زجاجية تَكسر تخطيط الطباعة. الأنماط الزجاجية تُعطَّل هنا قطعياً. */
+  .preview-surface .docx-wrapper * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
   }
 
   /* تفريغ هوامش الحاويات */
@@ -779,6 +809,48 @@
     box-shadow: none !important;
     border-radius: 0 !important;
     margin: 0 !important;
+    /* تجاوب كامل داخل A4 — مع ignoreWidth:true في docxgen.js */
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+  body.print-preview #app .preview-surface .docx-wrapper {
+    background: transparent !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* ===== حلّ مشكلة الإزاحة السلبية في Chromium لطباعة RTL =====
+     خاص بـ body.print-preview فقط (مسار docx-preview). الفكرة:
+       html/body في وضع LTR → يحسب المتصفّح إحداثيات الصفحة من 0 يساراً
+       (ينعدم الفائض السالب). ثم نُعيد فرض RTL على شجرة المحتوى العربية.
+     لا نطبّق هذا على body.print-form لأن مسار طباعة الورقة الرسمية
+     يعتمد على RTL على مستوى body مع .sheet معايَر مسبقاً ويعمل بشكل صحيح. */
+  body.print-preview,
+  html:has(body.print-preview) {
+    direction: ltr !important;
+  }
+  body.print-preview #app,
+  body.print-preview #app .view--service,
+  body.print-preview #app .svc-body,
+  body.print-preview #app .preview,
+  body.print-preview #app .preview-surface,
+  body.print-preview #app .preview-surface .docx-wrapper,
+  body.print-preview #app .preview-surface .docx-wrapper > section.docx {
+    direction: rtl !important;
+  }
+
+  /* ===== انضباط فواصل الصفحات — قواعد عامّة إضافية ===== */
+  h1, h2, h3, h4, h5, h6 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  p, img {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   /* ===== Command Center: hide workspace shell, agent assist, notes, macros, SLA bar ===== */
